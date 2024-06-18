@@ -2,7 +2,7 @@
 
 import logging
 
-from foca.foca import foca
+from foca import Foca
 
 from drs_filer.ga4gh.drs.endpoints.service_info import RegisterServiceInfo
 
@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    app = foca("config.yaml")
+    foca = Foca("config.yaml")
+    app = foca.create_app()
 
     # register service info
     with app.app.app_context():

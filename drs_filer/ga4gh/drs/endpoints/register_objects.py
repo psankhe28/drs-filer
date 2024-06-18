@@ -31,14 +31,15 @@ def register_object(
         A unique identifier for the object.
     """
     # Set parameters
+    foca_config = current_app.config.foca
     db_collection = (
-        current_app.config['FOCA'].db.dbs['drsStore'].
+        foca_config.db.dbs['drsStore'].
         collections['objects'].client
     )
-    url_prefix = current_app.config['FOCA'].endpoints['url_prefix']
-    external_host = current_app.config['FOCA'].endpoints['external_host']
-    external_port = current_app.config['FOCA'].endpoints['external_port']
-    api_path = current_app.config['FOCA'].endpoints['api_path']
+    url_prefix = foca_config.endpoints['url_prefix']
+    external_host = foca_config.endpoints['external_host']
+    external_port = foca_config.endpoints['external_port']
+    api_path = foca_config.endpoints['api_path']
 
     # Set flags and parameters for POST/PUT routes
     replace = True
@@ -46,10 +47,10 @@ def register_object(
     if object_id is None:
         replace = False
         id_length = (
-            current_app.config['FOCA'].endpoints['objects']['id_length']
+            foca_config.endpoints['objects']['id_length']
         )
         id_charset: str = (
-            current_app.config['FOCA'].endpoints['objects']['id_charset']
+            foca_config.endpoints['objects']['id_charset']
         )
         # evaluate character set expression or interpret literal string as set
         try:
@@ -120,11 +121,12 @@ def __add_access_ids(data: List) -> List:
     Returns:
         Access methods metadata complete with unique access identifiers.
     """
+    foca_config = current_app.config.foca
     id_charset = eval(
-        current_app.config['FOCA'].endpoints['access_methods']['id_charset']
+        foca_config.endpoints['access_methods']['id_charset']
     )
     id_length = (
-        current_app.config['FOCA'].endpoints['access_methods']['id_length']
+        foca_config.endpoints['access_methods']['id_length']
     )
     access_ids = []
     for method in data:
