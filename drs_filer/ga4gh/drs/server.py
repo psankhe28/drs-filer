@@ -7,11 +7,11 @@ from flask import (current_app, request)
 from foca.utils.logging import log_traffic
 
 from drs_filer.errors.exceptions import (
+    AccessMethodNotDeleted,
     AccessMethodNotFound,
     InternalServerError,
     ObjectNotFound,
     URLNotFound,
-    BadRequest,
 )
 from drs_filer.ga4gh.drs.endpoints.register_objects import (
     register_object,
@@ -52,7 +52,7 @@ def GetObject(object_id: str) -> Dict:
         DRS object as dictionary, JSONified if returned in app context.
     """
     db_collection = (
-        current_app.config['FOCA'].db.dbs['drsStore'].
+        current_app.config.foca.db.dbs['drsStore'].
         collections['objects'].client
     )
     obj = db_collection.find_one({"id": object_id})
@@ -130,7 +130,7 @@ def DeleteObject(object_id):
     """
 
     db_collection = (
-        current_app.config['FOCA'].db.dbs['drsStore'].
+        current_app.config.foca.db.dbs['drsStore'].
         collections['objects'].client
     )
     obj = db_collection.find_one({"id": object_id})
@@ -150,13 +150,15 @@ def DeleteAccessMethod(object_id: str, access_id: str) -> str:
         access_id: Identifier of the access method to be deleted
 
     Returns:
-        `access_id` of deleted object. Note that a
-        `BadRequest/400` error response is returned if attempting to delete
-        the only remaining access method.
+        `access_id` of deleted object.
+
+    Raises:
+        drs_filer.errors.exceptions.AccessMethodNotDeleted: If attempting to
+            delete the last remaining access method.
     """
 
     db_collection = (
-        current_app.config['FOCA'].db.dbs['drsStore'].
+        current_app.config.foca.db.dbs['drsStore'].
         collections['objects'].client
     )
 
@@ -171,7 +173,7 @@ def DeleteAccessMethod(object_id: str, access_id: str) -> str:
             "Will not delete only remaining access method for object: "
             f"{object_id}"
         )
-        raise BadRequest
+        raise AccessMethodNotDeleted
 
     del_access_methods = db_collection.update_one(
         filter={'id': object_id},

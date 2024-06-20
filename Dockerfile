@@ -1,5 +1,5 @@
 ##### BASE IMAGE #####
-FROM elixircloud/foca:20201114
+FROM elixircloud/foca:20240520-py3.12
 
 
 ##### METADATA ##### 
