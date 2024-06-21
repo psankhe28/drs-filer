@@ -34,6 +34,32 @@ paths:
             $ref: '#/definitions/Error'
       x-swagger-router-controller: ga4gh.drs.server
   '/objects':
+    get:
+      summary: List objects.
+      description: Retrieve a list of DRS objects.
+      operationId: ListDrsObjects
+      responses:
+        '200':
+          description: A list of DRS objects.
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/DrsObject'
+        '401':
+          description: The request is unauthorized.
+          schema:
+            $ref: '#/definitions/Error'
+        '403':
+          description: The requester is not authorized to perform this action.
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: An unexpected error occurred.
+          schema:
+            $ref: '#/definitions/Error'
+      tags:
+      - DataRepositoryService
+      x-swagger-router-controller: ga4gh.drs.server
     post:
       summary: Create object.
       description: |-
