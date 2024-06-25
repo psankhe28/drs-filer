@@ -28,7 +28,13 @@ jobs:
 
     - name: Test GET /service-info
       run: |
-        RESPONSE=$(curl -X GET --header 'Accept: application/json' 'http://localhost:8080/ga4gh/drs/v1/service-info')
+        RESPONSE=$(curl -s -o response.txt -w "%{http_code}" -X GET --header 'Accept: application/json' 'http://localhost:8080/ga4gh/drs/v1/service-info')
+        HTTP_STATUS=$(cat response.txt)
+        if [ "$HTTP_STATUS" -ne 200 ]; then
+          echo "Error: Received HTTP status code $HTTP_STATUS"
+          exit 1
+        fi
+        cat response.txt
         echo $RESPONSE
 
     - name: Test GET /objects
