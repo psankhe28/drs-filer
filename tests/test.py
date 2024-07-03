@@ -1,8 +1,19 @@
 import os
 import requests
 import time
+import pytest
 
 DRS_FILER_URL = os.getenv('DRS_FILER_URL')
+
+@pytest.fixture(scope="function")
+def get_object_id():
+    object_id = test_create_object()
+    yield object_id
+
+@pytest.fixture(scope="function")
+def get_access_id(get_object_id):
+    access_id = test_get_object(get_object_id).get('access_methods')[0].get('access_id')
+    yield access_id
 
 def handle_error(response):
     """Helper function to handle common error cases."""
@@ -70,7 +81,9 @@ def test_get_objects():
     else:
         handle_error(response)
 
-def test_get_object(object_id):
+def test_get_object(get_object_id):
+    object_id = get_object_id
+
     response = requests.get(f"{DRS_FILER_URL}/objects/{object_id}")
     
     if response.status_code == 200:
@@ -86,7 +99,10 @@ def test_get_object(object_id):
         handle_error(response)
         return None
 
-def test_get_object_access(object_id, access_id):
+def test_get_object_access(get_object_id, get_access_id):
+    object_id = get_object_id
+    access_id = get_access_id
+
     response = requests.get(f"{DRS_FILER_URL}/objects/{object_id}/access/{access_id}")
     
     if response.status_code == 200:
@@ -100,7 +116,9 @@ def test_get_object_access(object_id, access_id):
     else:
         handle_error(response)
 
-def test_update_object(object_id):
+def test_update_object(get_object_id):
+    object_id = get_object_id
+    
     data = {
         "access_methods": [
             {
@@ -146,7 +164,10 @@ def test_update_object(object_id):
     else:
         handle_error(response)
 
-def test_delete_object_access(object_id, access_id):
+def test_delete_object_access(get_object_id, get_access_id):
+    object_id=get_object_id
+    access_id=get_access_id
+    
     response = requests.delete(f"{DRS_FILER_URL}/objects/{object_id}/access/{access_id}")
     
     if response.status_code == 404:
@@ -158,7 +179,9 @@ def test_delete_object_access(object_id, access_id):
     else:
         handle_error(response)
 
-def test_delete_object(object_id):
+def test_delete_object(get_object_id):
+    object_id=get_object_id
+
     response = requests.delete(f"{DRS_FILER_URL}/objects/{object_id}")
     
     if response.status_code == 200:
@@ -204,15 +227,11 @@ def test_get_service_info():
         handle_error(response)
 
 if __name__ == "__main__":
-    object_id = test_create_object()
-    if object_id:
-        test_get_objects()
-        test_get_object(object_id)
-        access_id = test_get_object(object_id).get('access_methods')[0].get('access_id')
-        if access_id:
-            test_get_object_access(object_id, access_id)
-            test_update_object(object_id)
-            test_delete_object_access(object_id, access_id)
-        test_delete_object(object_id)
+    test_get_objects()
+    test_get_object()
+    test_get_object_access()
+    test_update_object()
+    test_delete_object_access()
+    test_delete_object()
     test_post_service_info()
     test_get_service_info()
