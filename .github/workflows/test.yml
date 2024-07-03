@@ -30,6 +30,6 @@ jobs:
         
     - name: Test with pytest
       run: |
-        pytest tests/test.py -v
+        pytest tests/test_api.py -v
       env:
         DRS_FILER_URL: http://localhost:8080/ga4gh/drs/v1
