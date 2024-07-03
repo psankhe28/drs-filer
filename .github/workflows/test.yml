@@ -5,160 +5,37 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    
+    services:
+      drs-filer:
+        image: drs-filer:latest
+        ports:
+          - 8080:8080
+        
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
+    - name: Checkout repository
+      uses: actions/checkout@v4.1.7
+    
     - name: Build and run Docker Compose
       run: docker-compose up --build -d
 
     - name: Wait for the services to be ready
       run: |
-        while ! curl -sSf http://localhost:8080 > /dev/null; do
-          echo "Waiting for the services to be ready..."
-          sleep 5
-        done
-
-    - name: Install curl (if not already available)
+        echo "Waiting for the services to be ready..."
+        sleep 30  # Wait for 30 seconds to ensure the services are up
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5.1.0
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
       run: |
-        if ! command -v curl &> /dev/null
-        then
-          sudo apt-get update
-          sudo apt-get install -y curl
-        fi
-
-    - name: Test GET /service-info
+        python -m pip install --upgrade pip
+        pip install pytest requests
+        
+    - name: Test with pytest
       run: |
-        RESPONSE=$(curl -s -o response.txt -w "%{http_code}" -X GET --header 'Accept: application/json' 'http://localhost:8080/ga4gh/drs/v1/service-info')
-        HTTP_STATUS=$(cat response.txt)
-        if [ "$HTTP_STATUS" -ne 200 ]; then
-          echo "Error: Received HTTP status code $HTTP_STATUS"
-          exit 1
-        fi
-        cat response.txt
-        echo $RESPONSE
-
-    - name: Test GET /objects
-      run: |
-        RESPONSE=$(curl -X GET --header 'Accept: application/json' 'http://localhost:8080/ga4gh/drs/v1/objects')
-        echo $RESPONSE
-
-    - name: Test POST /objects
-      id: create_object
-      run: |
-        RESPONSE=$(curl -s -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{
-          "access_methods": [
-            {
-              "access_url": {
-                "headers": [],
-                "url": "http://example.com/data"
-              },
-              "region": "us-east-1",
-              "type": "s3"
-            }
-          ],
-          "aliases": [
-            "example_alias"
-          ],
-          "checksums": [
-            {
-              "checksum": "abc123",
-              "type": "sha-256"
-            }
-          ],
-          "contents": [],
-          "created_time": "2024-06-12T12:58:19Z",
-          "description": "An example object",
-          "mime_type": "application/json",
-          "name": "example_object",
-          "size": 1024,
-          "updated_time": "2024-06-12T12:58:19Z",
-          "version": "1.0"
-        }' 'http://localhost:8080/ga4gh/drs/v1/objects')
-        id=$(echo "$RESPONSE" | tr -d '"' | sed 's/ //g')
-        echo "::set-output name=id::$id"
-        echo $RESPONSE
-
-    - name: Test GET /objects/{object_id}
-      id: access_id_obj
-      run: |
-        RESPONSE=$(curl -s -X GET --header 'Accept: application/json' "http://localhost:8080/ga4gh/drs/v1/objects/${{ steps.create_object.outputs.id }}")
-        access_id=$(echo "$RESPONSE" | jq -r '.access_methods[0].access_id')
-        echo "::set-output name=access_id::$access_id"
-        echo $access_id
-
-    - name: Test GET /objects/{object_id}/access/{access_id}
-      run: |
-        RESPONSE=$(curl -X GET --header 'Accept: application/json' "http://localhost:8080/ga4gh/drs/v1/objects/${{ steps.create_object.outputs.id }}/access/${{ steps.access_id_obj.outputs.access_id}}")
-        echo $RESPONSE
-
-    - name: Test PUT /objects/{object_id}
-      run: |
-        RESPONSE=$(curl -X PUT \
-                        --header 'Accept: application/json' \
-                        --header 'Content-Type: application/json' \
-                        --data '{
-                            "access_methods": [
-                                {
-                                    "access_url": {
-                                        "headers": [
-                                            "string"
-                                        ],
-                                        "url": "string"
-                                    },
-                                    "region": "us-east-1",
-                                    "type": "s3"
-                                }
-                            ],
-                            "aliases": [
-                                "string"
-                            ],
-                            "checksums": [
-                                {
-                                    "checksum": "string",
-                                    "type": "sha-256"
-                                }
-                            ],
-                            "contents": [
-                                {
-                                    "contents": [],
-                                    "drs_uri": [
-                                        "drs://drs.example.org/314159",
-                                        "drs://drs.example.org/213512",
-                                        "drs://drs.example.org/213516"
-                                    ],
-                                    "id": "string",
-                                    "name": "string"
-                                }
-                            ],
-                            "created_time": "2024-06-12T06:27:29.248Z",
-                            "description": "string",
-                            "mime_type": "application/json",
-                            "name": "string",
-                            "size": 0,
-                            "updated_time": "2024-06-12T06:27:29.248Z",
-                            "version": "string"
-                        }' \
-                        "http://localhost:8080/ga4gh/drs/v1/objects/${{ steps.create_object.outputs.id }}")
-        echo $RESPONSE
-
-    - name: Test DELETE /objects/{object_id}/access/{access_id}
-      run: |
-        RESPONSE=$(curl -X DELETE --header 'Accept: application/json' "http://localhost:8080/ga4gh/drs/v1/objects/${{ steps.create_object.outputs.id }}/access/${{ steps.access_id_obj.outputs.access_id}}")
-        echo $RESPONSE
-
-    - name: Test DELETE /objects/{object_id}
-      run: |
-        RESPONSE=$(curl -X DELETE --header 'Accept: application/json' "http://localhost:8080/ga4gh/drs/v1/objects/${{ steps.create_object.outputs.id }}")
-        echo $RESPONSE
-
-    - name: Test POST /service-info
-      run: |
-        RESPONSE=$(curl -X POST http://localhost:8080/ga4gh/drs/v1/service-info -H 'Content-Type: application/json' -d '{"contactUrl": "mailto:support@example.com","createdAt": "2024-06-12T12:58:19Z","description": "This service provides...","documentationUrl": "https://docs.myservice.example.com","environment": "test","id": "org.ga4gh.myservice","name": "My project","organization": {"name": "My organization","url": "https://example.com"},"type": {"artifact": "beacon","group": "org.ga4gh","version": "1.0.0"},"updatedAt": "2024-06-12T12:58:19Z","version": "1.0.0"}')
-        echo $RESPONSE
-
-    - name: Test GET /service-info
-      run: |
-        RESPONSE=$(curl -X GET --header 'Accept: application/json' 'http://localhost:8080/ga4gh/drs/v1/service-info')
-        echo $RESPONSE
+        pytest tests/test.py -v
+      env:
+        DRS_FILER_URL: http://localhost:8080/ga4gh/drs/v1
