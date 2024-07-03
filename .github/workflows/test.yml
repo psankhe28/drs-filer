@@ -5,12 +5,6 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    
-    services:
-      drs-filer:
-        image: drs-filer:latest
-        ports:
-          - 8080:8080
         
     steps:
     - name: Checkout repository
